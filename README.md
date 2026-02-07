@@ -16,4 +16,6 @@ docker run -d \
     tenox7/vncxdmcp
 ```
 
+VNC Password is `vncx11`.
+
 If XDMCP is unspecified `-broadcast` is the default.
