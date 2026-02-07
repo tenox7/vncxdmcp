@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+	pgrep Xtightvnc >/dev/null || { rm -f /tmp/.X0-lock /tmp/.X11-unix/X0; Xtightvnc :0 -desktop X -geometry ${GEOMETRY} -depth 24 -rfbwait 120000 -rfbauth /root/.vnc/passwd -rfbport 5900 -fp /usr/share/fonts/X11/misc/ -co /etc/X11/rgb -ac ${XDMCP}; }
+	sleep 10
+done
