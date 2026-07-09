@@ -18,12 +18,10 @@ import (
 	"net"
 	"os"
 	"sync/atomic"
+	"time"
 )
 
-const (
-	xdmcpPort = "177"
-	opcodeReq = 7
-)
+const opcodeReq = 7
 
 func main() {
 	target := os.Getenv("XDMCP_TARGET")
@@ -35,8 +33,12 @@ func main() {
 	if newIP == nil {
 		log.Fatalf("invalid DOCKER_HOST_IP %q", advertise)
 	}
+	taddr, err := net.ResolveUDPAddr("udp4", net.JoinHostPort(target, "177"))
+	if err != nil {
+		log.Fatalf("resolve %s: %v", target, err)
+	}
 	from := localIPv4s()
-	log.Printf("xdmcp-relay: 127.0.0.1:%s -> %s:%s, rewriting %v -> %s", xdmcpPort, target, xdmcpPort, from, advertise)
+	log.Printf("xdmcp-relay: 127.0.0.1:177 -> %s, rewriting %v -> %s", taddr, from, advertise)
 
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 177})
 	if err != nil {
@@ -44,7 +46,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	upstream, err := net.DialUDP("udp4", nil, &net.UDPAddr{IP: net.ParseIP(target), Port: 177})
+	upstream, err := net.DialUDP("udp4", nil, taddr)
 	if err != nil {
 		log.Fatalf("dial target: %v", err)
 	}
@@ -57,7 +59,11 @@ func main() {
 		for {
 			n, err := upstream.Read(buf)
 			if err != nil {
-				log.Fatalf("upstream read: %v", err)
+				// connected UDP surfaces ICMP unreachable as a read error
+				// when the target is down; stay up, it may come back
+				log.Printf("upstream read: %v", err)
+				time.Sleep(time.Second)
+				continue
 			}
 			if a := clientAddr.Load(); a != nil {
 				conn.WriteToUDP(buf[:n], a)
