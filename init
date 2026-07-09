@@ -1,5 +1,11 @@
 #!/bin/bash
+[ "${DEPTH}" = "8" ] && CC="-cc 3"
+if [ -n "${XDMCP_TARGET}" ]; then
+	: "${DOCKER_HOST_IP:?DOCKER_HOST_IP must be set when XDMCP_TARGET is used}"
+	XDMCP_TARGET=${XDMCP_TARGET} DOCKER_HOST_IP=${DOCKER_HOST_IP} /xdmcp-relay &
+	XDMCP="-query 127.0.0.1"
+fi
 while true; do
-	pgrep Xtightvnc >/dev/null || { rm -f /tmp/.X0-lock /tmp/.X11-unix/X0; Xtightvnc :0 -desktop X -geometry ${GEOMETRY} -depth 24 -rfbwait 120000 -rfbauth /root/.vnc/passwd -rfbport 5900 -fp /usr/share/fonts/X11/misc/ -co /etc/X11/rgb -ac ${XDMCP}; }
+	pgrep -x Xtightvnc >/dev/null || { rm -f /tmp/.X0-lock; rm -rf /tmp/.X11-unix/X0; Xtightvnc :0 -desktop X -geometry ${GEOMETRY} -depth ${DEPTH} ${CC} -rfbwait 120000 -rfbauth /root/.vnc/passwd -rfbport 5900 -fp /usr/share/fonts/X11/misc/,/usr/share/fonts/X11/75dpi/,/usr/share/fonts/X11/100dpi/,/usr/share/fonts/X11/Type1/ -ac ${XDMCP}; }
 	sleep 10
 done
