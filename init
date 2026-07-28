@@ -1,11 +1,22 @@
 #!/bin/bash
 [ "${DEPTH}" = "8" ] && CC="-cc 3"
+
+# misc first (fixed/cursor), then DEC, then every other dir with a fonts.dir
+FP=""
+for d in /usr/share/fonts/X11/misc /usr/share/fonts/X11/dec/* /usr/share/fonts/X11/dec/decwin/* \
+	$(find /usr/share/fonts/X11 -name fonts.dir | xargs -n1 dirname | sort); do
+	[ -f "$d/fonts.dir" ] || continue
+	case ",$FP" in *",$d/,"*) continue ;; esac
+	FP="$FP$d/,"
+done
+FP=${FP%,}
+
 if [ -n "${XDMCP_TARGET}" ]; then
 	: "${DOCKER_HOST_IP:?DOCKER_HOST_IP must be set when XDMCP_TARGET is used}"
 	XDMCP="-query 127.0.0.1"
 	while true; do /xdmcp-relay; sleep 10; done &
 fi
 while true; do
-	pgrep -x Xtightvnc >/dev/null || { rm -f /tmp/.X0-lock; rm -rf /tmp/.X11-unix/X0; Xtightvnc :0 -desktop X -geometry ${GEOMETRY} -depth ${DEPTH} ${CC} -rfbwait 120000 -rfbauth /root/.vnc/passwd -rfbport 5900 -fp /usr/share/fonts/X11/misc/,/usr/share/fonts/X11/75dpi/,/usr/share/fonts/X11/100dpi/,/usr/share/fonts/X11/Type1/ -ac ${XDMCP}; }
+	pgrep -x Xtightvnc >/dev/null || { rm -f /tmp/.X0-lock; rm -rf /tmp/.X11-unix/X0; Xtightvnc :0 -desktop X -geometry ${GEOMETRY} -depth ${DEPTH} ${CC} -rfbwait 120000 -rfbauth /root/.vnc/passwd -rfbport 5900 -fp ${FP} -ac ${XDMCP}; }
 	sleep 10
 done
