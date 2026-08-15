@@ -1,9 +1,10 @@
 #!/bin/bash
 [ "${DEPTH}" = "8" ] && CC="-cc 3"
 
-# misc first (fixed/cursor), then DEC, then every other dir with a fonts.dir
+# misc first (fixed/cursor), then SCO, then DEC, then every other dir with a fonts.dir
 FP=""
-for d in /usr/share/fonts/X11/misc /usr/share/fonts/X11/dec/* /usr/share/fonts/X11/dec/decwin/* \
+for d in /usr/share/fonts/X11/misc /usr/share/fonts/X11/sco/* \
+	/usr/share/fonts/X11/dec/* /usr/share/fonts/X11/dec/decwin/* \
 	$(find /usr/share/fonts/X11 -name fonts.dir | xargs -n1 dirname | sort); do
 	[ -f "$d/fonts.dir" ] || continue
 	case ",$FP" in *",$d/,"*) continue ;; esac

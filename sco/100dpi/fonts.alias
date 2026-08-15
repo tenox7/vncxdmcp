@@ -1,0 +1,14 @@
+ibm6x13bold -sco-terminal-bold-r-normal--13-100-100-100-m-60-ibm437-1
+ibm8x13bold -sco-terminal-bold-r-normal--13-100-100-100-m-80-ibm437-1
+ibm9x15bold -sco-terminal-bold-r-normal--15-120-100-100-m-90-ibm437-1
+ibm10x20 -sco-terminal-medium-r-normal--20-140-100-100-m-100-ibm437-1
+ibm6x13 -sco-terminal-medium-r-normal--13-100-100-100-m-60-ibm437-1
+ibm8x13 -sco-terminal-medium-r-normal--13-100-100-100-m-80-ibm437-1
+ibm8x14 -sco-terminal-medium-r-normal--14-100-100-100-m-80-ibm437-1
+ibm9x15 -sco-terminal-medium-r-normal--15-120-100-100-m-90-ibm437-1
+ibm11x18 -sco-terminal-medium-r-normal--18-14-100-100-m-108-ibm437-1
+ibm15x25 -sco-terminal-medium-r-normal--25-180-100-100-m-170-ibm437-1
+ibm16x26 -sco-terminal-medium-r-normal--26-19-100-100-m-160-ibm437-1
+ibm17x28 -sco-terminal-medium-r-normal--28-20-100-100-m-169-ibm437-1
+ibm11x18bold -sco-terminal-bold-r-normal--18-14-100-100-m-108-ibm437-1
+ibm15x25bold -sco-terminal-bold-r-normal--26-190-100-100-m-220-ibm437-1

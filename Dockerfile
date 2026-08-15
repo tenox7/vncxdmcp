@@ -20,6 +20,7 @@ RUN apt update -y && apt install -y \
 	gsfonts-x11 \
 	&& rm -rf /var/lib/apt/lists/*
 COPY dec/ /usr/share/fonts/X11/dec/
+COPY sco/ /usr/share/fonts/X11/sco/
 RUN mkdir /root/.vnc && \
 	sh -c 'echo vncx11 | vncpasswd -f > /root/.vnc/passwd' && \
 	chmod 600 /root/.vnc/passwd

@@ -1,0 +1,10 @@
+9
+ibm850-8x8.pcf.gz -sco-terminal-medium-r-normal--8-120-75-75-m-80-ibm850-1
+ibm850-8x14.pcf.gz -sco-terminal-medium-r-normal--14-120-75-75-m-80-ibm850-1
+ibm850-8x16.pcf.gz -sco-terminal-medium-r-normal--16-120-75-75-m-80-ibm850-1
+ibm852-8x8.pcf.gz -sco-terminal-medium-r-normal--8-120-75-75-m-80-ibm852-1
+ibm852-8x14.pcf.gz -sco-terminal-medium-r-normal--14-120-75-75-m-80-ibm852-1
+ibm852-8x16.pcf.gz -sco-terminal-medium-r-normal--16-120-75-75-m-80-ibm852-1
+ibm858-8x8.pcf.gz -sco-terminal-medium-r-normal--8-120-75-75-m-80-ibm858-1
+ibm858-8x14.pcf.gz -sco-terminal-medium-r-normal--14-120-75-75-m-80-ibm858-1
+ibm858-8x16.pcf.gz -sco-terminal-medium-r-normal--16-120-75-75-m-80-ibm858-1
