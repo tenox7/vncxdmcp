@@ -12,7 +12,7 @@ docker run -d \
   -p 5900:5900 \
   -p 6000:6000 \
   -e GEOMETRY=1920x1200 \
-  -e XDMCP_TARGET=192.168.1.111 \
+  -e XDMCP_TARGET=192.168.1.112 \
   -e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
   tenox7/vncxdmcp:latest
 

@@ -23,3 +23,4 @@ VNC Password is `vncx11`.
 
 - `XDMCP_TARGET` — remote host to connect via XDMCP Query.
 - `DOCKER_HOST_IP` — Docker host's real LAN IP, reachable from `XDMCP_TARGET`. This is needed for traversing Docker's NAT.
+- `FONT_SERVER` — remote X font server for CDE/DT fonts, e.g. `tcp/192.168.1.112:7000`. Autodetected on `XDMCP_TARGET` port 7100/7000; set to empty to disable.

@@ -12,6 +12,17 @@ for d in /usr/share/fonts/X11/misc /usr/share/fonts/X11/sco/* \
 done
 FP=${FP%,}
 
+# remote X font server (CDE/DT fonts etc), autodetected on the XDMCP target
+if [ -z "${FONT_SERVER+x}" ] && [ -n "${XDMCP_TARGET}" ]; then
+	for p in 7100 7000; do
+		(exec 3<>/dev/tcp/${XDMCP_TARGET}/$p) 2>/dev/null || continue
+		FONT_SERVER="tcp/${XDMCP_TARGET}:$p"
+		break
+	done
+fi
+# appended last so local fonts keep priority
+[ -n "${FONT_SERVER}" ] && FP="$FP,${FONT_SERVER}"
+
 if [ -n "${XDMCP_TARGET}" ]; then
 	: "${DOCKER_HOST_IP:?DOCKER_HOST_IP must be set when XDMCP_TARGET is used}"
 	XDMCP="-query 127.0.0.1"
