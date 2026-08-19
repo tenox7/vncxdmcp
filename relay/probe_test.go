@@ -1,0 +1,40 @@
+package main
+
+import "testing"
+
+// capturedWilling is a real XDMCP WILLING packet, the reply of an HP-UX
+// dtlogin to the QUERY that probe sends.
+var capturedWilling = []byte{
+	0x00, 0x01, 0x00, 0x05, 0x00, 0x2a, 0x00, 0x00,
+	0x00, 0x08, 0x68, 0x70, 0x75, 0x78, 0x31, 0x31,
+	0x33, 0x31, 0x00, 0x1c, 0x38, 0x20, 0x75, 0x73,
+	0x65, 0x72, 0x73, 0x20, 0x20, 0x6c, 0x6f, 0x61,
+	0x64, 0x3a, 0x20, 0x30, 0x2e, 0x30, 0x2c, 0x20,
+	0x30, 0x2e, 0x30, 0x2c, 0x20, 0x30, 0x2e, 0x30,
+}
+
+func TestParseWilling(t *testing.T) {
+	host, status, ok := parseWilling(capturedWilling)
+	if !ok {
+		t.Fatal("captured WILLING packet rejected")
+	}
+	if host != "hpux1131" {
+		t.Errorf("host: got %q want %q", host, "hpux1131")
+	}
+	if want := "8 users  load: 0.0, 0.0, 0.0"; status != want {
+		t.Errorf("status: got %q want %q", status, want)
+	}
+}
+
+func TestParseWillingRejectsMalformed(t *testing.T) {
+	for name, pkt := range map[string][]byte{
+		"short":       capturedWilling[:4],
+		"wrong op":    {0x00, 0x01, 0x00, 0x06, 0x00, 0x00},
+		"truncated":   capturedWilling[:20],
+		"length lies": {0x00, 0x01, 0x00, 0x05, 0x00, 0x2a, 0x00, 0xff, 0x41},
+	} {
+		if _, _, ok := parseWilling(pkt); ok {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}

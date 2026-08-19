@@ -1,3 +1,8 @@
+FROM ubuntu AS cbuilder
+RUN apt update -y && apt install -y gcc libc6-dev libx11-dev
+COPY xprompt.c /
+RUN gcc -O2 -Wall -o /xprompt /xprompt.c -lX11
+
 FROM golang:1.24-bookworm AS gobuilder
 WORKDIR /build
 COPY relay/ .
@@ -8,6 +13,8 @@ EXPOSE 5900
 EXPOSE 6000
 RUN apt update -y && apt install -y \
 	tightvncserver \
+	x11-utils \
+	x11-xserver-utils \
 	xfonts-base \
 	xfonts-75dpi \
 	xfonts-100dpi \
@@ -26,6 +33,7 @@ RUN mkdir /root/.vnc && \
 	chmod 600 /root/.vnc/passwd
 ADD init /init
 COPY --from=gobuilder /build/xdmcp-relay /xdmcp-relay
+COPY --from=cbuilder /xprompt /xprompt
 ENV GEOMETRY=1280x1024
 ENV XDMCP=-broadcast
 ENV DEPTH=8

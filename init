@@ -1,4 +1,5 @@
 #!/bin/bash
+TARGET=/tmp/xdmcp-target
 [ "${DEPTH}" = "8" ] && CC="-cc 3"
 
 # misc first (fixed/cursor), then SCO, then DEC, then every other dir with a fonts.dir
@@ -12,23 +13,53 @@ for d in /usr/share/fonts/X11/misc /usr/share/fonts/X11/sco/* \
 done
 FP=${FP%,}
 
-# remote X font server (CDE/DT fonts etc), autodetected on the XDMCP target
-if [ -z "${FONT_SERVER+x}" ] && [ -n "${XDMCP_TARGET}" ]; then
+# CDE/DT fonts exist only on the CDE host, served by its own xfs
+font_server() {
+	local p
+	[ -n "${FONT_SERVER+x}" ] && { echo "${FONT_SERVER}"; return; }
+	[ -n "$1" ] || return
 	for p in 7100 7000; do
-		(exec 3<>/dev/tcp/${XDMCP_TARGET}/$p) 2>/dev/null || continue
-		FONT_SERVER="tcp/${XDMCP_TARGET}:$p"
-		break
+		timeout 2 bash -c "exec 3<>/dev/tcp/$1/$p" 2>/dev/null || continue
+		echo "tcp/$1:$p"
+		return
 	done
-fi
-# appended last so local fonts keep priority
-[ -n "${FONT_SERVER}" ] && FP="$FP,${FONT_SERVER}"
+}
 
-if [ -n "${XDMCP_TARGET}" ]; then
-	: "${DOCKER_HOST_IP:?DOCKER_HOST_IP must be set when XDMCP_TARGET is used}"
+# ask for the host to connect to; the relay picks the answer up from $TARGET
+# and replays the X server's pending QUERY at it
+ask_target() {
+	local msg="XDMCP Query Target" pick fs
+	export DISPLAY=:0
+	until xset q >/dev/null 2>&1; do sleep 1; done
+	while :; do
+		pick=$(/xprompt "$msg")
+		[ -n "$pick" ] || continue
+		/xdmcp-relay -probe "$pick" && break
+		msg="$pick did not answer, XDMCP Query Target"
+	done
+	fs=$(font_server "$pick")
+	echo "$pick" > "$TARGET"
+	# the font server has to be in Xtightvnc's -fp; dtlogin resets the X server
+	# at session start, which wipes anything added later with xset fp+
+	[ -n "$fs" ] && pkill -x Xtightvnc
+}
+
+rm -f "$TARGET"
+if [ -n "${DOCKER_HOST_IP}" ]; then
 	XDMCP="-query 127.0.0.1"
+	[ -n "${XDMCP_TARGET}" ] && echo "${XDMCP_TARGET}" > "$TARGET"
 	while true; do /xdmcp-relay; sleep 10; done &
+	[ -f "$TARGET" ] || ask_target &
+elif [ -n "${XDMCP_TARGET}" ]; then
+	echo "DOCKER_HOST_IP must be set when XDMCP_TARGET is used" >&2
+	exit 1
 fi
+
 while true; do
-	pgrep -x Xtightvnc >/dev/null || { rm -f /tmp/.X0-lock; rm -rf /tmp/.X11-unix/X0; Xtightvnc :0 -desktop X -geometry ${GEOMETRY} -depth ${DEPTH} ${CC} -rfbwait 120000 -rfbauth /root/.vnc/passwd -rfbport 5900 -fp ${FP} -ac ${XDMCP}; }
+	pgrep -x Xtightvnc >/dev/null && { sleep 10; continue; }
+	FS=$(font_server "$(cat $TARGET 2>/dev/null)")
+	rm -f /tmp/.X0-lock; rm -rf /tmp/.X11-unix/X0
+	Xtightvnc :0 -desktop X -geometry ${GEOMETRY} -depth ${DEPTH} ${CC} -rfbwait 120000 \
+		-rfbauth /root/.vnc/passwd -rfbport 5900 -fp "${FP}${FS:+,$FS}" -ac ${XDMCP}
 	sleep 10
 done

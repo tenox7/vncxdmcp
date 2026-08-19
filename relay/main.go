@@ -9,6 +9,12 @@
 // outbound REQUEST packets to DOCKER_HOST_IP, a LAN-routable address whose
 // TCP callback port (6000+display) Docker publishes back into the
 // container. Every other XDMCP packet type is forwarded unmodified.
+//
+// The upstream host is read from $targetFile rather than from the environment,
+// so the X server can come up first and be pointed at a display manager later
+// by whatever the user types into the prompt. "-probe <host>" instead just asks
+// one host whether it is willing to manage a display, which is what the
+// prompt uses to reject a typo.
 package main
 
 import (
@@ -17,57 +23,96 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 )
 
-const opcodeReq = 7
+const (
+	opcodeQuery     = 2
+	opcodeWilling   = 5
+	opcodeUnwilling = 6
+	opcodeReq       = 7
+	xdmcpPort       = 177
+	targetFile      = "/tmp/xdmcp-target"
+	pollInterval    = time.Second
+)
 
 func main() {
-	target := os.Getenv("XDMCP_TARGET")
+	if len(os.Args) == 3 && os.Args[1] == "-probe" {
+		os.Exit(probe(os.Args[2]))
+	}
 	advertise := os.Getenv("DOCKER_HOST_IP")
-	if target == "" || advertise == "" {
-		log.Fatal("XDMCP_TARGET and DOCKER_HOST_IP must be set")
+	if advertise == "" {
+		log.Fatal("DOCKER_HOST_IP must be set")
 	}
 	newIP := net.ParseIP(advertise).To4()
 	if newIP == nil {
 		log.Fatalf("invalid DOCKER_HOST_IP %q", advertise)
 	}
-	taddr, err := net.ResolveUDPAddr("udp4", net.JoinHostPort(target, "177"))
-	if err != nil {
-		log.Fatalf("resolve %s: %v", target, err)
-	}
 	from := localIPv4s()
-	log.Printf("xdmcp-relay: 127.0.0.1:177 -> %s, rewriting %v -> %s", taddr, from, advertise)
+	log.Printf("xdmcp-relay: 127.0.0.1:177 -> %s, rewriting %v -> %s", targetFile, from, advertise)
 
-	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 177})
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: xdmcpPort})
 	if err != nil {
 		log.Fatalf("listen: %v", err)
 	}
 	defer conn.Close()
 
-	upstream, err := net.DialUDP("udp4", nil, taddr)
+	// unconnected, so the target can change without reopening the socket
+	upstream, err := net.ListenUDP("udp4", nil)
 	if err != nil {
-		log.Fatalf("dial target: %v", err)
+		log.Fatalf("upstream socket: %v", err)
 	}
 	defer upstream.Close()
 
+	var target atomic.Pointer[net.UDPAddr]
 	var clientAddr atomic.Pointer[net.UDPAddr]
+	var lastQuery atomic.Pointer[[]byte]
+
+	setTarget := func(host string) {
+		addr, err := net.ResolveUDPAddr("udp4", net.JoinHostPort(host, "177"))
+		if err != nil {
+			log.Printf("resolve %s: %v", host, err)
+			return
+		}
+		if old := target.Load(); old != nil && old.String() == addr.String() {
+			return
+		}
+		target.Store(addr)
+		log.Printf("target %s", addr)
+		// replay the X server's last QUERY so the login screen comes up at
+		// once, instead of waiting out its ~32s retransmission interval
+		if q := lastQuery.Load(); q != nil {
+			upstream.WriteToUDP(*q, addr)
+		}
+	}
+
+	go func() {
+		for {
+			if b, err := os.ReadFile(targetFile); err == nil {
+				if h := strings.TrimSpace(string(b)); h != "" {
+					setTarget(h)
+				}
+			}
+			time.Sleep(pollInterval)
+		}
+	}()
 
 	go func() {
 		buf := make([]byte, 65535)
 		for {
-			n, err := upstream.Read(buf)
+			n, addr, err := upstream.ReadFromUDP(buf)
 			if err != nil {
-				// connected UDP surfaces ICMP unreachable as a read error
-				// when the target is down; stay up, it may come back
 				log.Printf("upstream read: %v", err)
 				time.Sleep(time.Second)
 				continue
 			}
-			if a := clientAddr.Load(); a != nil {
-				conn.WriteToUDP(buf[:n], a)
+			t, c := target.Load(), clientAddr.Load()
+			if t == nil || c == nil || !addr.IP.Equal(t.IP) {
+				continue
 			}
+			conn.WriteToUDP(buf[:n], c)
 		}
 	}()
 
@@ -80,10 +125,25 @@ func main() {
 		}
 		clientAddr.Store(addr)
 		pkt := rewrite(buf[:n], from, newIP)
-		if _, err := upstream.Write(pkt); err != nil {
+		if opcode(pkt) == opcodeQuery {
+			q := append([]byte(nil), pkt...)
+			lastQuery.Store(&q)
+		}
+		t := target.Load()
+		if t == nil {
+			continue // no host chosen yet, the X server will retry
+		}
+		if _, err := upstream.WriteToUDP(pkt, t); err != nil {
 			log.Printf("upstream write: %v", err)
 		}
 	}
+}
+
+func opcode(pkt []byte) int {
+	if len(pkt) < 6 {
+		return -1
+	}
+	return int(binary.BigEndian.Uint16(pkt[2:4]))
 }
 
 // rewrite replaces any occurrence of the container's local IPv4 addresses
@@ -91,7 +151,7 @@ func main() {
 // unchanged. In-place substitution keeps the packet length constant, so no
 // re-framing of the surrounding XDMCP structure is needed.
 func rewrite(pkt []byte, from []net.IP, newIP net.IP) []byte {
-	if len(pkt) < 6 || binary.BigEndian.Uint16(pkt[2:4]) != opcodeReq {
+	if opcode(pkt) != opcodeReq {
 		return pkt
 	}
 	body := pkt[6:]

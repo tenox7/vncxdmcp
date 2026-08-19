@@ -21,6 +21,10 @@ docker run -d \
 
 VNC Password is `vncx11`.
 
-- `XDMCP_TARGET` — remote host to connect via XDMCP Query.
+- `XDMCP_TARGET` — remote host to connect via XDMCP Query. Leave it unset to be asked for the host in an input box.
 - `DOCKER_HOST_IP` — Docker host's real LAN IP, reachable from `XDMCP_TARGET`. This is needed for traversing Docker's NAT.
-- `FONT_SERVER` — remote X font server for CDE/DT fonts, e.g. `tcp/192.168.1.112:7000`. Autodetected on `XDMCP_TARGET` port 7100/7000; set to empty to disable.
+- `FONT_SERVER` — remote X font server for CDE/DT fonts, e.g. `tcp/192.168.1.112:7000`. Autodetected on the target's port 7100/7000; set it empty to disable.
+
+## Host prompt
+
+With `DOCKER_HOST_IP` set and `XDMCP_TARGET` left out, a blank input box asks for the host to connect to, and asks again if what you typed does not answer XDMCP. Set `XDMCP_TARGET` to skip the prompt.
