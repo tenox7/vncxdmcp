@@ -1,8 +1,8 @@
-# VNC Xterminal via XDMCP as Docker Container
+# VNC Xterminal is a XDMCP Query via Xvncs as Docker Container
 
 https://hub.docker.com/r/tenox7/vncxterminal
 
-XDMCP query/indirect/broadcast in VNC. Kind of like Xnest or Xephyr but with VNC backend.
+XDMCP query in VNC. Kind of like Xnest or Xephyr but with VNC backend.
 
 You can use any VNC client, on MacOS you can just `open vnc://127.0.0.1`.
 
@@ -14,15 +14,14 @@ docker run -d \
     -p 6000:6000 \
     -e GEOMETRY=1920x1200 \
     -e DEPTH=8 \
-    -e XDMCP_TARGET=192.168.1.197 \
     -e DOCKER_HOST_IP=192.168.1.10 \
     tenox7/vncxterminal
 ```
 
 VNC Password is `vncx11`.
 
-- `XDMCP_TARGET` — remote host to connect via XDMCP Query. Leave it unset to be asked for the host in an input box.
 - `DOCKER_HOST_IP` — Docker host's real LAN IP, reachable from `XDMCP_TARGET`. This is needed for traversing Docker's NAT.
+- `XDMCP_TARGET` — remote host to connect via XDMCP Query. Leave it unset to be asked for the host in an input box.
 - `FONT_SERVER` — remote X font server for CDE/DT fonts, e.g. `tcp/192.168.1.112:7000`. Autodetected on the target's port 7100/7000; set it empty to disable.
 
 ## Host prompt
