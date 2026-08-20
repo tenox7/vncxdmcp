@@ -1,6 +1,6 @@
-# XDMCP Xterminal via VNC as Docker Container
+# VNC Xterminal via XDMCP as Docker Container
 
-https://hub.docker.com/r/tenox7/vncxdmcp
+https://hub.docker.com/r/tenox7/vncxterminal
 
 XDMCP query/indirect/broadcast in VNC. Kind of like Xnest or Xephyr but with VNC backend.
 
@@ -16,7 +16,7 @@ docker run -d \
     -e DEPTH=8 \
     -e XDMCP_TARGET=192.168.1.197 \
     -e DOCKER_HOST_IP=192.168.1.10 \
-    tenox7/vncxdmcp
+    tenox7/vncxterminal
 ```
 
 VNC Password is `vncx11`.

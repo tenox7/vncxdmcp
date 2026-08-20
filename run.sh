@@ -1,5 +1,5 @@
 #!/bin/bash
-docker rm -f vncxdmcp
+docker rm -f vncxterminal
 
 case "$(uname -s)" in
 	Darwin) DOCKER_HOST_IP=$(ipconfig getifaddr "$(route get 1.1.1.1 | awk '/interface:/{print $2}')") ;;
@@ -8,11 +8,11 @@ case "$(uname -s)" in
 esac
 
 docker run -d \
-  --name vncxdmcp \
+  --name vncxterminal \
   -p 5900:5900 \
   -p 6000:6000 \
   -e GEOMETRY=1920x1200 \
   -e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
-  tenox7/vncxdmcp:latest
+  tenox7/vncxterminal:latest
 
 open vnc://127.0.0.1
