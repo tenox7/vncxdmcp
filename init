@@ -3,14 +3,18 @@ TARGET=/tmp/xdmcp-target
 [ "${DEPTH}" = "8" ] && CC="-cc 3"
 
 # misc first (fixed/cursor), then SCO, then DEC, then every other dir with a fonts.dir
-FP=""
+# 100dpi goes last: Motif/DECwindows ask for fonts by point size with a wildcard
+# resolution, so the server takes the first font path match whatever the screen DPI is,
+# and a 100dpi hit renders ~30% oversized on the 75dpi screen Xtightvnc reports
+FP=""; FP100=""
 for d in /usr/share/fonts/X11/misc /usr/share/fonts/X11/sco/* \
 	/usr/share/fonts/X11/dec/* /usr/share/fonts/X11/dec/decwin/* \
 	$(find /usr/share/fonts/X11 -name fonts.dir | xargs -n1 dirname | sort); do
 	[ -f "$d/fonts.dir" ] || continue
-	case ",$FP" in *",$d/,"*) continue ;; esac
-	FP="$FP$d/,"
+	case ",$FP,$FP100" in *",$d/,"*) continue ;; esac
+	case "$d" in *100dpi) FP100="$FP100$d/," ;; *) FP="$FP$d/," ;; esac
 done
+FP=${FP}${FP100}
 FP=${FP%,}
 
 # CDE/DT fonts exist only on the CDE host, served by its own xfs
